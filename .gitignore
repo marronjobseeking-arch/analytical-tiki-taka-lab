@@ -1,0 +1,8 @@
+# Competition data and everything derived from it stay out of git.
+data/*
+!data/README.md
+out/
+*.mp4
+*.csv
+__pycache__/
+.venv/

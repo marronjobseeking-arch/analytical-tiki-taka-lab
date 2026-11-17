@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analytical Tiki-Taka Lab: Technical report on ball possession</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #16211c;
+    --quiet: #5b6861;
+    --rule: #cfd6d1;
+    --wash: #eef2ef;
+    --home: #1d6a4b;
+    --away: #b9502f;
+    --dead: #9aa39e;
+    --paper: #ffffff;
+    --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+    --label: "Barlow", Arial, sans-serif;
+    --body: "Source Serif 4", Georgia, serif;
+  }
+  @page { size: A4; margin: 14mm 16mm 13mm 16mm; }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0 auto; max-width: 178mm; padding: 0;
+    background: var(--paper); color: var(--ink);
+    font: 400 8.9pt/1.42 var(--body);
+    font-variant-numeric: lining-nums;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  p { margin: 0 0 2.2mm; }
+  strong { font-weight: 600; }
+  code { font: 500 8.6pt/1 var(--label); background: var(--wash); padding: 0.4mm 1.2mm; border-radius: 1mm; }
+
+  /* Masthead */
+  header { padding-bottom: 4mm; border-bottom: 0.7mm solid var(--ink); margin-bottom: 5mm; }
+  .team { font: 600 12pt/1 var(--label); color: var(--home); margin: 0 0 2.5mm; }
+  h1 { font: 700 30pt/0.98 var(--display); letter-spacing: -0.2pt; margin: 0 0 3.5mm; max-width: 150mm; }
+  .meta { font: 400 9.5pt/1.3 var(--label); color: var(--quiet); margin: 0; }
+
+  /* Sections: heading hangs in a left gutter */
+  section { display: grid; grid-template-columns: 34mm 1fr; column-gap: 5mm; padding-top: 3.1mm; margin-top: 3.1mm; border-top: 0.25mm solid var(--rule); }
+  section:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+  h2 { font: 600 16pt/1.05 var(--display); margin: 0.3mm 0 0; break-after: avoid; }
+  .body { min-width: 0; }
+  .body > :last-child { margin-bottom: 0; }
+  h3 { font: 600 10pt/1.3 var(--label); margin: 4mm 0 1.6mm; break-after: avoid; }
+  .lead { font-size: 10.2pt; line-height: 1.45; }
+
+  ol, ul { margin: 0 0 2.6mm; padding-left: 5mm; }
+  li { margin-bottom: 1.3mm; padding-left: 0.8mm; }
+  li::marker { font: 600 9pt var(--label); color: var(--home); }
+  ul li::marker { color: var(--dead); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 1mm 0 3mm; font: 400 8.6pt/1.32 var(--label); }
+  tr { break-inside: avoid; }
+  table.keep { break-inside: avoid; }
+  th { font: 600 10.2pt/1.15 var(--display); text-align: left; vertical-align: bottom; padding: 0 2.5mm 1.5mm 0; border-bottom: 0.45mm solid var(--ink); }
+  td { padding: 1.15mm 2.5mm 1.15mm 0; border-bottom: 0.2mm solid var(--rule); vertical-align: top; }
+  th:last-child, td:last-child { padding-right: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums lining-nums; white-space: nowrap; }
+  td.ours { font-weight: 600; }
+  .used { color: var(--home); font-weight: 600; white-space: nowrap; }
+  .check { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .dropped { color: var(--quiet); white-space: nowrap; }
+  .note { font: 400 8.6pt/1.4 var(--label); color: var(--quiet); }
+
+  .eq { break-inside: avoid; margin: 1mm 0 3mm 5.8mm; padding: 1.2mm 0 1.2mm 4mm; border-left: 0.6mm solid var(--home); font: 400 10pt/1.6 var(--body); }
+  .eq div { white-space: nowrap; }
+  .eq i { font-style: italic; }
+  .eq sub { font-size: 0.7em; font-style: normal; }
+  .eq .gap { display: inline-block; width: 7mm; }
+  .eqnote { margin-left: 5.8mm; break-after: avoid; }
+  figure { margin: 1mm 0 3mm; break-inside: avoid; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { font: 400 8.6pt/1.4 var(--label); color: var(--quiet); margin-top: 1.8mm; }
+
+  pre { margin: 1mm 0 3mm; padding: 3mm 4mm; background: var(--ink); color: #f1f5f2; border-radius: 1.2mm; font: 500 8.8pt/1.55 "DejaVu Sans Mono", Menlo, Consolas, monospace; white-space: pre-wrap; break-inside: avoid; }
+
+
+  @media screen {
+    body { padding: 14mm 6mm 20mm; }
+  }
+  @media screen and (max-width: 640px) {
+    body { padding: 8mm 16px 14mm; font-size: 11pt; }
+    section { grid-template-columns: 1fr; row-gap: 2mm; }
+    h1 { font-size: 26pt; }
+    table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="team">Analytical Tiki-Taka Lab</p>
+  <h1>Technical report on ball possession</h1>
+  <p class="meta">More than a Hack 2027, Phase 1. Submitted 17 November 2026.</p>
+</header>
+
+<section>
+  <h2>Summary</h2>
+  <div class="body">
+    <p class="lead">Our submission labels each frame with an ensemble of three sequence models trained on labels from external matches only, decoded with a three-state Viterbi decoder. At inference, the pipeline reads only the provided automatic tracking from the tactical camera.</p>
+    <p>On external matches the ensemble reaches a spellF1 of 0.615 on seven DFL matches degraded to resemble automatic tracking, and 0.806 on three Metrica sample matches. The organisers' smoothed nearest-player baseline scores 0.237 and 0.422 on the same matches.</p>
+    <p>No model weight or constant was fitted to the provided game's ground truth.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Approach</h2>
+  <div class="body">
+    <p>The pipeline has three stages.</p>
+    <figure>
+      <svg viewBox="0 0 760 392" role="img" aria-label="Three models are mixed, then decoded into one label per frame" font-family="Barlow, Arial, sans-serif">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#16211c"/></marker>
+        </defs>
+        <g fill="none" stroke="#16211c" stroke-width="1.2">
+          <path d="M380 52V68"/><path d="M122 68H638"/>
+          <path d="M122 68V84" marker-end="url(#arr)"/><path d="M380 68V84" marker-end="url(#arr)"/><path d="M638 68V84" marker-end="url(#arr)"/>
+          <path d="M122 160V184" marker-end="url(#arr)"/><path d="M380 160V184" marker-end="url(#arr)"/><path d="M638 160V184" marker-end="url(#arr)"/>
+          <path d="M380 256V280" marker-end="url(#arr)"/><path d="M380 336V352" marker-end="url(#arr)"/>
+        </g>
+        <rect x="190" y="4" width="380" height="48" rx="4" fill="#eef2ef"/>
+        <text x="380" y="25" text-anchor="middle" font-size="15" font-weight="600" fill="#16211c">Automatic tracking</text>
+        <text x="380" y="42" text-anchor="middle" font-size="12" fill="#5b6861">players and ball from the tactical camera</text>
+
+        <g font-size="13" fill="#5b6861">
+          <rect x="2" y="84" width="240" height="76" rx="4" fill="#fff" stroke="#16211c" stroke-width="1.2"/>
+          <text x="16" y="108" font-size="15" font-weight="600" fill="#16211c">A: GRU</text>
+          <text x="16" y="126">9 networks, 140 features</text>
+          <text x="16" y="144">dead-ball and team logits</text>
+          <rect x="260" y="84" width="240" height="76" rx="4" fill="#fff" stroke="#16211c" stroke-width="1.2"/>
+          <text x="274" y="108" font-size="15" font-weight="600" fill="#16211c">B: Convolution + GRU</text>
+          <text x="274" y="126">9 networks, same features as A</text>
+          <text x="274" y="144">dead-ball and team logits</text>
+          <rect x="518" y="84" width="240" height="76" rx="4" fill="#fff" stroke="#16211c" stroke-width="1.2"/>
+          <text x="532" y="108" font-size="15" font-weight="600" fill="#16211c">C: Convolution + GRU</text>
+          <text x="532" y="126">3 networks, own 62 features</text>
+          <text x="532" y="144">H / A / D probabilities</text>
+
+          <rect x="2" y="184" width="756" height="72" rx="4" fill="#fff" stroke="#16211c" stroke-width="1.2"/>
+          <text x="16" y="208" font-size="15" font-weight="600" fill="#16211c">Fixed-weight ensemble</text>
+          <text x="16" y="226">Dead ball: mean of A and B</text>
+          <text x="16" y="244">Team while the ball is alive: ¼ A + ¼ B + ½ C</text>
+
+          <rect x="2" y="280" width="756" height="56" rx="4" fill="#fff" stroke="#16211c" stroke-width="1.2"/>
+          <text x="16" y="304" font-size="15" font-weight="600" fill="#16211c">Three-state Viterbi decoder</text>
+          <text x="16" y="322">transition penalty 16, resets at each half</text>
+        </g>
+        <!-- output: one label per frame, drawn as the label strip itself -->
+        <g>
+          <rect x="2" y="356" width="150" height="34" fill="#1d6a4b"/><rect x="152" y="356" width="96" height="34" fill="#b9502f"/>
+          <rect x="248" y="356" width="74" height="34" fill="#9aa39e"/><rect x="322" y="356" width="190" height="34" fill="#1d6a4b"/>
+          <rect x="512" y="356" width="130" height="34" fill="#b9502f"/><rect x="642" y="356" width="116" height="34" fill="#9aa39e"/>
+          <g font-size="13" font-weight="600" fill="#fff" text-anchor="middle">
+            <text x="77" y="378">H</text><text x="200" y="378">A</text><text x="285" y="378">D</text><text x="417" y="378">H</text><text x="577" y="378">A</text><text x="700" y="378">D</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption>The pipeline. The output is one label per frame: home (H), away (A) or dead ball (D). The bar at the bottom is illustrative, not match data.</figcaption>
+    </figure>
+    <ol>
+      <li><strong>Features from tracking only.</strong> Each half becomes a 12.5&nbsp;Hz sequence of per-frame features: ball visibility, speed and the duration of missing-ball gaps; the ball's distance outside the pitch and the time since it last crossed a line; distance from the ball to the nearest player of each team; team centroid, dispersion, and defensive and attacking line positions; player counts in the penalty area. Attack direction is estimated per half so the features are independent of playing direction. The first two models read 140 features and the third reads its own 62. Features and networks use both past and future context, so the method is offline (non-causal), not real-time.</li>
+      <li><strong>Three sequence models.</strong> Model A is a bidirectional GRU (2 layers, 64 units per direction). Model B adds two residual convolution blocks (kernel size 9) before the same GRU. Both output a dead-ball logit and a home-versus-away logit. Model C, a convolution layer followed by a bidirectional GRU (2 layers, 128 units per direction), outputs H/A/D probabilities. Every network processes each sequence twice, with the home and away roles exchanged, and combines the two outputs, so its predictions are equivariant to swapping the teams. No calibration step is applied to any model.</li>
+      <li><strong>Fixed-weight ensembling and decoding.</strong> Fixed weights combine the three models, and a three-state Viterbi decoder turns the probabilities into H/A/D runs, separately for each half.</li>
+    </ol>
+
+
+    <p class="eqnote">With <i>h</i>, <i>a</i> and <i>d</i> a model's probabilities of home, away and dead ball at one frame:</p>
+    <div class="eq">
+      <div><i>d</i> = ½ (<i>d</i><sub>A</sub> + <i>d</i><sub>B</sub>)</div>
+      <div><i>q</i> = ¼ <i>q</i><sub>A</sub> + ¼ <i>q</i><sub>B</sub> + ½ <i>q</i><sub>C</sub><span class="gap"></span>where <i>q</i><sub>m</sub> = <i>h</i><sub>m</sub> / (<i>h</i><sub>m</sub> + <i>a</i><sub>m</sub>)</div>
+      <div>P(H) = (1 − <i>d</i>) <i>q</i><span class="gap"></span>P(A) = (1 − <i>d</i>)(1 − <i>q</i>)<span class="gap"></span>P(D) = <i>d</i></div>
+    </div>
+    <p class="eqnote">The decoder picks the label sequence <i>s</i> that maximises:</p>
+    <div class="eq">
+      <div><i>ŝ</i> = arg max<sub><i>s</i></sub> &nbsp;Σ<sub><i>t</i></sub> log P<sub><i>t</i></sub>(<i>s</i><sub><i>t</i></sub>) − 16 · #{ <i>t</i> : <i>s</i><sub><i>t</i></sub> ≠ <i>s</i><sub><i>t</i>−1</sub> }</div>
+    </div>
+    <p class="eqnote">The transition penalty of 16 is in natural-log units and is identical for every pair of labels.</p>
+
+    <h3>The three models in numbers</h3>
+    <table class="keep">
+      <thead><tr><th></th><th>A: GRU</th><th>B: Convolution + GRU</th><th>C: Convolution + GRU</th></tr></thead>
+      <tbody>
+        <tr><td>Input features</td><td>140</td><td>140</td><td>62</td></tr>
+        <tr><td>Parameters per network</td><td>168 thousand</td><td>496 thousand</td><td>586 thousand</td></tr>
+        <tr><td>Networks averaged for the provided game</td><td>9 (3 folds × 3 seeds)</td><td>9 (3 folds × 3 seeds)</td><td>3 (3 folds)</td></tr>
+        <tr><td>Training steps</td><td>4,000</td><td>4,000</td><td>3,000</td></tr>
+        <tr><td>Loss</td><td colspan="2">Binary cross-entropy on dead ball (every graded frame) and on home versus away (frames with the ball alive)</td><td>Three-class cross-entropy</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Training.</strong> All networks use AdamW (learning rate 0.002, weight decay 0.01) with a one-cycle schedule, on batches of 32 windows of 512 steps, about 41 seconds each.</p>
+    <p><strong>Inference.</strong> The match is split into overlapping windows of 512 steps with a stride of 256, and the middle half of each window is kept. Predictions at 12.5&nbsp;Hz return to 25&nbsp;Hz by linear interpolation of the logits within each half (A and B) or by repeating each step (C).</p>
+    <p><strong>Output.</strong> Frames outside the two halves are labelled X; inside them every frame gets H, A or D. In the submitted file 33.4% of in-half frames are H, 21.3% A and 45.4% D, forming 249 possessions with a mean length of 13.9&nbsp;s.</p>
+
+    <h3>Design rationale</h3>
+    <p>The ranking metric counts whole possessions, so a brief misclassification inside a possession splits it into two incorrect ones. The per-frame classifiers we tried first (logistic regression, gradient boosting, a multilayer perceptron) plateaued on external data regardless of features or temporal smoothing. Sequence models with about 40 seconds of context, followed by a decoder that penalises every label transition, produce possessions of realistic length directly.</p>
+    <p>We use fixed ensemble weights, which have no fitted parameters. Learned meta-models (stacked logistic regression, gradient boosting, a gating network) did not outperform them on the external DFL matches in an earlier comparison. Against the unweighted mean of models A and B, the three-model ensemble scores 0.615 and 0.620 on the two DFL label sets versus 0.617 and 0.613, a difference within the standard error of 0.015. Alone, models A and B score higher on DFL and model C on Metrica, so we combine all three as a balance between the datasets.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Assets used and dropped</h2>
+  <div class="body">
+    <table>
+      <thead><tr><th style="width:36%">Asset</th><th style="width:15%">Used</th><th>Role</th></tr></thead>
+      <tbody>
+        <tr><td>Automatic tracking, tactical camera (players and ball)</td><td class="used">Yes</td><td>The only input to the three models</td></tr>
+        <tr><td>Tactical video, audio track</td><td class="dropped">Dropped</td><td>A referee-whistle rule was implemented but not used. No image is read</td></tr>
+        <tr><td>Smart Tagging</td><td class="check">Benchmark only</td><td>Not a model input. A goal-kick rule on set-piece tags was implemented but not used. Tag timing was used to configure the degradation of the external benchmark matches</td></tr>
+        <tr><td>Ball leaving the pitch in the tracking</td><td class="check">Features only</td><td>Model inputs: the ball's distance outside the pitch and the time since it last crossed a line. A stand-alone line-crossing rule was implemented but not used</td></tr>
+        <tr><td>Broadcast video and its tracking</td><td class="dropped">Dropped</td><td>Explored as a possible dead-ball signal; not used</td></tr>
+        <tr><td>Ball re-detected from the tactical video</td><td class="dropped">Dropped</td><td>A detector trained on the external TeamTrack dataset was implemented but not used</td></tr>
+        <tr><td>Homography</td><td class="dropped">Dropped</td><td>Not needed once the tracking is in pitch coordinates</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Training data</h2>
+  <div class="body">
+    <p>All training labels come from external matches; none from the provided game.</p>
+    <table class="keep">
+      <thead><tr><th>Dataset</th><th>Source</th><th class="num">Amount</th><th>Who labelled it</th></tr></thead>
+      <tbody>
+        <tr><td>DFL open dataset (IDSSE)</td><td>Bundesliga 1 and 2, 2022/23. Bassek et al. (2025), doi:10.1038/s41597-025-04505-y. CC-BY 4.0, with authorisation of the DFL</td><td class="num">7 matches</td><td>DFL official event data and ball status</td></tr>
+        <tr><td>Metrica sample data</td><td>github.com/metrica-sports/sample-data. No formal licence; source acknowledgement requested</td><td class="num">3 matches</td><td>Metrica event data</td></tr>
+        <tr><td>PFF FC World Cup 2022</td><td>PFF FC free-access release (request form); broadcast tracking at 29.97 fps, resampled to 25 fps</td><td class="num">64 matches</td><td>PFF event data</td></tr>
+      </tbody>
+    </table>
+    <p><strong>From events to labels.</strong> No dataset provides possession labels. We derive H/A/D per frame from each provider's events with the rule set under Possession rules; dead ball comes from DFL's ball-status flag and from Metrica's and PFF's events. No team member labelled any frame.</p>
+    <p><strong>Simulating automatic-tracking noise.</strong> The external tracking is cleaner than the provided automatic tracking, so before training we degrade it: the ball trajectory is smoothed and masked for realistic durations, player tracks are split into short fragments with new identities, and false-positive detections are added. The degradation strength is set from label-free summary statistics of the provided tracking, such as ball visibility, gap durations and track fragment lengths, together with ball visibility in and out of play measured on the external labels. This training degradation uses no Smart Tagging data; the DFL benchmark inputs use an earlier configuration that also used set-piece tag timing. Models A and B train on three independently degraded copies of every match, PFF included; model C on two degraded copies of every match plus an undegraded copy of the DFL and Metrica matches.</p>
+    <p><strong>Held-out predictions.</strong> The ten DFL and Metrica matches are split into three folds. Each network is trained on the other two folds plus the 64 PFF matches, so every external score in this report comes from networks not trained on that match.</p>
+    <p><strong>Ensemble weights and transition penalty.</strong> Both are fixed constants, chosen on external matches only. On external matches, varying the penalty from 4 to 32 changes spellF1 from 0.609 to 0.620 on the DFL challenge-winner labels, from 0.594 to 0.641 on the DFL default labels and from 0.827 to 0.778 on Metrica. DFL favours a larger penalty and Metrica a smaller one; we chose 16 as a balance between the datasets.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Possession rules</h2>
+  <div class="body">
+    <p>The networks are trained on labels built from event data with the rules below.</p>
+    <ul>
+      <li><strong>Control, not touch.</strong> Possession moves only when the other team controls the ball: a pass, shot, carry, recovery or restart. A clearance, block or deflection does not move it.</li>
+      <li><strong>Loose balls.</strong> A loose ball stays with the last team that controlled it until the other team controls it. There is no neutral state while the ball is alive.</li>
+      <li><strong>Challenges.</strong> A challenge moves possession only when the provider's events record a change of control. Winning a tackle or aerial duel does not move it by itself. One of our two DFL benchmark label sets does award the duel winner; the other follows the training convention.</li>
+      <li><strong>Timing of a possession change.</strong> The label changes on the frame of the controlling event, with no added delay.</li>
+      <li><strong>Dead ball.</strong> The ball is dead from the stoppage until the frame of the restart kick.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Results on external data</h2>
+  <div class="body">
+    <p>On the degraded DFL matches the ensemble's spellF1 is more than 2.5 times the organisers' baseline. Scores are match means from the official scorer, excluding each match's first 5 minutes, against labels built from each provider's events with no timing adjustment.</p>
+    <table class="keep">
+      <thead>
+        <tr><th rowspan="2">External dataset</th><th class="num" rowspan="2">Matches</th><th class="num" colspan="2">spellF1</th><th class="num" colspan="2">macroF1</th></tr>
+        <tr><th class="num">Ours</th><th class="num">Baseline</th><th class="num">Ours</th><th class="num">Baseline</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>DFL degraded, challenge-winner labels</td><td class="num">7</td><td class="num ours">0.615</td><td class="num">0.237</td><td class="num ours">0.877</td><td class="num">0.586</td></tr>
+        <tr><td>DFL degraded, default labels</td><td class="num">7</td><td class="num ours">0.620</td><td class="num">0.241</td><td class="num ours">0.877</td><td class="num">0.591</td></tr>
+        <tr><td>Metrica sample games</td><td class="num">3</td><td class="num ours">0.806</td><td class="num">0.422</td><td class="num ours">0.891</td><td class="num">0.773</td></tr>
+      </tbody>
+    </table>
+    <p class="note">The baseline is nearest-player assignment with 50-frame smoothing. The standard error of our spellF1 is 0.015, 0.017 and 0.008 for the three rows. The two DFL rows score the same predictions against two label sets, so they are not independent evidence.</p>
+    <p>These scores are for the ensemble we submit, with one difference: each external match is predicted only by the networks of the fold that held it out, while the provided game uses the networks of all three folds.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Limitations</h2>
+  <div class="body">
+    <ul>
+      <li><strong>Team assignment is the main source of error.</strong> Among frames where the ball is alive, 84% get the right team on the DFL matches. Dead-versus-alive F1 is 0.96 there. Those matches are corrected tracking that we degraded ourselves, so we expect less on real automatic tracking.</li>
+      <li><strong>The predicted number of possessions depends on the label convention.</strong> We predict 0.92 times the true count on the challenge-winner labels, 1.12 times on the default labels and 0.86 times on Metrica.</li>
+      <li><strong>Missing ball detections.</strong> When the ball is not detected, the features carry only the time since it was last seen, its last position and the team formation features. We have not measured how accuracy falls with gap length.</li>
+      <li><strong>External scores are not a full leave-one-match-out estimate.</strong> Networks were trained once per fold, not once per match.</li>
+    </ul>
+
+    <p style="margin-top:3mm"><strong>Future work:</strong> leave-one-match-out retraining, and evaluating the whistle rule on external matches that have audio.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Reproduction</h2>
+  <div class="body">
+    <p>Requirements: Python 3.12 with <code>uv</code> and the organisers' data package under <code>data/</code>. No GPU is needed. The repository ships the 21 network checkpoints (30&nbsp;MB) under <code>weights/</code>.</p>
+<pre>uv sync
+uv run python -m pipeline.run --team Analytical_Tiki-Taka_Lab</pre>
+    <p>The command converts the provided tracking, runs the 21 networks on CPU, ensembles and decodes their outputs, and writes the 199,319-row CSV to <code>out/match/submission/</code>. It then runs the organisers' validator and compares the labels with the submitted ones by SHA-256. It takes about 10 minutes and reads no label.</p>
+    <p>Tested from the raw data package on a CPU (torch 2.15); training ran on GPUs. Network outputs differed in the seventh decimal place and all labels were identical. Retraining and the external scores need the external datasets and are not in the repository.</p>
+  </div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+[project]
+name = "analytical-tiki-taka-lab"
+version = "1.0.0"
+description = "More than a Hack 2027, Phase 1: frame-level ball possession for BAR-ATH"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy==2.5.4",
+    "pandas",
+    "torch==2.15.0",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
